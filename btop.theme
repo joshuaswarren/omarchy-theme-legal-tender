@@ -1,0 +1,51 @@
+# ────────────────────────────────────────────────────────────
+# Bashtop theme - Legal Tender (Omacom Foundation Note)
+# Elite capital. Public code.
+# ────────────────────────────────────────────────────────────
+
+theme[main_bg]=""
+
+theme[main_fg]="#d6d1bd"
+theme[title]="#6f9663"
+theme[hi_fg]="#c9a554"
+theme[selected_bg]="#c9a554"
+theme[selected_fg]="#0e1411"
+theme[inactive_fg]="#4c5a50"
+theme[proc_misc]="#6f9663"
+theme[cpu_box]="#3a523f"
+theme[mem_box]="#3a523f"
+theme[net_box]="#3a523f"
+theme[proc_box]="#3a523f"
+theme[div_line]="#3a523f"
+
+theme[temp_start]="#85a760"
+theme[temp_mid]="#c9a554"
+theme[temp_end]="#b0413e"
+
+theme[cpu_start]="#85a760"
+theme[cpu_mid]="#c9a554"
+theme[cpu_end]="#b0413e"
+
+theme[free_start]="#85a760"
+theme[free_mid]="#c9a554"
+theme[free_end]="#b0413e"
+
+theme[cached_start]="#85a760"
+theme[cached_mid]="#c9a554"
+theme[cached_end]="#b0413e"
+
+theme[available_start]="#85a760"
+theme[available_mid]="#c9a554"
+theme[available_end]="#b0413e"
+
+theme[used_start]="#85a760"
+theme[used_mid]="#c9a554"
+theme[used_end]="#b0413e"
+
+theme[download_start]="#85a760"
+theme[download_mid]="#c9a554"
+theme[download_end]="#b0413e"
+
+theme[upload_start]="#85a760"
+theme[upload_mid]="#c9a554"
+theme[upload_end]="#b0413e"
