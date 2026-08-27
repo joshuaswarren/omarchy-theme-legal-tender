@@ -73,8 +73,8 @@ def scene_foundation_note(p):
     # A classic note hierarchy: header, seal, value, patrons, signatures.
     # Nothing crosses the medallion or denomination plaque.
     p.border(((42, 4), (56, 1), (82, 2)))
-    p.microprint(58)
-    p.microprint(H - 64)
+    p.microprint(58, x0=110, x1=W - 110, clip=True)
+    p.microprint(H - 64, x0=110, x1=W - 110, clip=True)
     p.text_at(
         W / 2,
         112,
@@ -86,10 +86,10 @@ def scene_foundation_note(p):
 
     # Four small value seals stay in the corners and out of the copy.
     for cx, cy in (
-        (210, 210),
-        (W - 210, 210),
-        (210, H - 210),
-        (W - 210, H - 210),
+        (250, 250),
+        (W - 250, 250),
+        (250, H - 250),
+        (W - 250, H - 250),
     ):
         p.d.ellipse(
             [p.s(cx - 132), p.s(cy - 132), p.s(cx + 132), p.s(cy + 132)],

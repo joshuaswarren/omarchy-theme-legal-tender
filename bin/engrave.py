@@ -263,17 +263,31 @@ class Plate:
             )
             self.check_safe(m, m, self.w - m, self.h - m, "border rule")
 
-    def microprint(self, y, color=GREEN, size=11, text=None, x0=130, x1=None):
+    def microprint(self, y, color=GREEN, size=11, text=None, x0=130, x1=None,
+                   clip=False):
         """A line of tiny repeated text between the border rules. Decorative."""
         text = text or MICROPRINT
         fnt = self.font(SERIF_REG, size)
         x1 = x1 if x1 is not None else self.w - 130
         unit = self.d.textlength(text, font=fnt)
-        x = self.s(x0)
-        end = self.s(x1)
-        while x < end:
-            self.d.text((x, self.s(y)), text, font=fnt, fill=color)
-            x += unit
+        start = int(self.s(x0))
+        end = int(self.s(x1))
+        if clip:
+            # Tile on a bounded strip so the final repetition is clipped
+            # cleanly at x1 instead of spilling through the right border.
+            height = max(1, int(fnt.size * 1.6))
+            strip = Image.new("RGBA", (max(1, end - start), height), (0, 0, 0, 0))
+            sd = ImageDraw.Draw(strip)
+            x = 0
+            while x < strip.width:
+                sd.text((x, 0), text, font=fnt, fill=color)
+                x += unit
+            self.img.paste(strip, (start, int(self.s(y))), strip)
+        else:
+            x = start
+            while x < end:
+                self.d.text((x, self.s(y)), text, font=fnt, fill=color)
+                x += unit
         self.check_safe(x0, y - size, x1, y + size, "microprint")
 
     def patron_stars(self, cx, cy, color=GOLD):
