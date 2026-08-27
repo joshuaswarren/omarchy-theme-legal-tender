@@ -272,41 +272,50 @@ def scene_signature_plate(p):
     p.border(((52, 5), (70, 2)), ink)
     p.microprint(58, ink_dim, size=13, x0=110, x1=W - 110, clip=True)
     p.microprint(H - 64, ink_dim, size=13, x0=110, x1=W - 110, clip=True)
+    p.text_at(W / 2, 150, "THE SIGNING DESK", p.font(SERIF, 64), ink, tracking=14)
+    p.text_at(W / 2, 226, "OMACOM FOUNDATION · SERIES 2026",
+              p.font(MONO_BOLD, 30), ink_dim, tracking=6)
 
-    p.d.rounded_rectangle([p.s(520), p.s(120), p.s(W - 520), p.s(270)],
-                          radius=30, fill=ink)
-    p.text_at(W / 2, 195, "SIGNING CEREMONY · OMACOM FOUNDATION",
-              p.font(SERIF, 42), CREAM, tracking=10)
+    # The signing book: one blank signature line, waiting.
+    p.d.rounded_rectangle([p.s(640), p.s(430), p.s(W - 640), p.s(1560)],
+                          radius=30, fill=CREAM, outline=ink, width=8)
+    p.text_at(1180, 620, "SIGN HERE", p.font(SERIF, 46), ink_dim, tracking=9)
+    p.d.line([p.s(980), p.s(1180), p.s(2900), p.s(1180)], fill=ink, width=10)
+    p.text_at(980, 1218, "BENEVOLENT DICTATOR FOR LIFE",
+              p.font(SERIF, 26), ink_dim, anchor="la", tracking=5)
+    p.text_at(2900, 1218, "0.001%", p.font(MONO_BOLD, 26), RED, anchor="ra")
 
-    p.d.rounded_rectangle([p.s(300), p.s(390), p.s(1940), p.s(1250)],
-                          radius=42, outline=ink, width=8)
-    p.text_at(1120, 700, "D. H. Hansson", p.font(SERIF_IT, 190), ink)
-    p.d.line([p.s(520), p.s(850), p.s(1720), p.s(850)], fill=proof_gold, width=7)
-    p.text_at(1120, 945, "BENEVOLENT DICTATOR FOR LIFE", p.font(SERIF, 42),
-              proof_gold, tracking=10)
+    # Notary seal, pressed at an angle over the book's corner.
+    seal = Image.new("RGBA", (520 * p.ss, 520 * p.ss), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(seal)
+    sd.ellipse([20, 20, 500 * p.ss - 20, 500 * p.ss - 20], fill=ink)
+    sd.ellipse([int(48 * p.ss), int(48 * p.ss), int(472 * p.ss), int(472 * p.ss)],
+               outline=RED, width=int(12 * p.ss))
+    sd.ellipse([int(76 * p.ss), int(76 * p.ss), int(444 * p.ss), int(444 * p.ss)],
+               outline=RED, width=int(4 * p.ss))
+    sd.regular_polygon((260 * p.ss, 260 * p.ss, 95 * p.ss), 5,
+                       rotation=180, fill=RED)
+    seal = seal.rotate(-14, resample=Image.BICUBIC, expand=True)
+    p.img.paste(seal, (int(p.s(2540)), int(p.s(1080))), seal)
 
-    seal_x, seal_y = 2700, 760
-    p.d.ellipse([p.s(seal_x - 320), p.s(seal_y - 320),
-                 p.s(seal_x + 320), p.s(seal_y + 320)], fill=ink)
-    p.rosette(seal_x, seal_y, 265, 225, RED, petals=22, width=5)
-    p.star(seal_x, seal_y, 105, RED)
-    p.text_at(seal_x, 1160, "NOTARY OF PATRONS", p.font(SERIF, 38), ink,
-              tracking=8)
+    # Fountain pen silhouette crossing the page's top-right corner.
+    pen = Image.new("RGBA", (1250 * p.ss, 420 * p.ss), (0, 0, 0, 0))
+    pd = ImageDraw.Draw(pen)
+    pd.regular_polygon((170 * p.ss, 210 * p.ss, 54 * p.ss), 3,
+                       rotation=90, fill=GOLD)
+    pd.polygon(
+        [(200 * p.ss, 150 * p.ss), (1060 * p.ss, 210 * p.ss),
+         (1060 * p.ss, 270 * p.ss), (200 * p.ss, 270 * p.ss)],
+        fill=ink,
+    )
+    pd.rectangle([1060 * p.ss, 218 * p.ss, 1180 * p.ss, 262 * p.ss], fill=GOLD)
+    pen = pen.rotate(24, resample=Image.BICUBIC, expand=True)
+    p.img.paste(pen, (int(p.s(2180)), int(p.s(250))), pen)
 
-    for x0, x1, title, value in (
-        (420, 1540, "PATRON OF THE ARTS", "you@omarchy"),
-        (1900, 3020, "THE REMAINDER", "0.001%"),
-    ):
-        p.d.rounded_rectangle([p.s(x0), p.s(1370), p.s(x1), p.s(1630)],
-                              radius=34, fill=ink)
-        p.text_at((x0 + x1) / 2, 1470, value,
-                  p.font(SERIF_IT if "@" in value else MONO_BOLD, 82),
-                  CREAM if "@" in value else RED)
-        p.text_at((x0 + x1) / 2, 1570, title, p.font(SERIF, 26), "#8f9a85",
-                  tracking=6)
-
-    p.text_at(W / 2, 1780, "SIGNED WITH STYLE · SERIES 2026",
-              p.font(SERIF, 34), ink_dim, tracking=10)
+    p.text_at(W / 2, H - 220, "LEFT BLANK FOR THE NEXT PATRON",
+              p.font(SERIF, 44), ink, tracking=11)
+    p.text_at(W / 2, H - 145, "NOTARY OF PATRONS · INK DRIES FAST",
+              p.font(MONO_BOLD, 26), RED, tracking=5)
 
 
 # ─────────────────────────────────────────────────────────────────────────
