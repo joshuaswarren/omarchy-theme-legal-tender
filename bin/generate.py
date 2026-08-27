@@ -121,20 +121,20 @@ for y in (96, H - 106):
 lattice_band(970, 1090, GREEN_DIM, waves=30, strands=18)
 
 # ── Corner denomination rosettes ────────────────────────────────────────────
-for cx, cy in ((330, 320), (W - 330, 320), (330, H - 320), (W - 330, H - 320)):
-    rosette(cx, cy, 170, 138, GREEN, petals=14)
-    rosette(cx, cy, 118, 100, GREEN_DIM, petals=28)
-    text_at(cx, cy, "1M", font(SERIF, 96), CREAM)
+for cx, cy in ((380, 380), (W - 380, 380), (380, H - 380), (W - 380, H - 380)):
+    rosette(cx, cy, 240, 195, GREEN, petals=14)
+    rosette(cx, cy, 168, 142, GREEN_DIM, petals=28)
+    text_at(cx, cy, "1M", font(SERIF, 110), CREAM)
 
 # ── Central medallion ────────────────────────────────────────────────────────
-CX, CY = W // 2, 1010
-rosette(CX, CY, 540, 484, GREEN, petals=40)
-rosette(CX, CY, 506, 446, GREEN_DIM, petals=44)
-rosette(CX, CY, 428, 398, GOLD, petals=60)
+CX, CY = W // 2, 1060
+rosette(CX, CY, 860, 770, GREEN, petals=40)
+rosette(CX, CY, 800, 700, GREEN_DIM, petals=44)
+rosette(CX, CY, 670, 625, GOLD, petals=60)
 # Radial engraving shading inside the ring.
 for t in range(0, 360, 3):
     a = math.radians(t)
-    r1, r2 = 236 * SS, 390 * SS
+    r1, r2 = 380 * SS, 640 * SS
     d.line(
         [
             (CX * SS + r1 * math.cos(a), CY * SS + r1 * math.sin(a)),
@@ -145,24 +145,24 @@ for t in range(0, 360, 3):
     )
 # The O: a heavy engraved ring.
 d.ellipse(
-    [(CX - 210) * SS, (CY - 210) * SS, (CX + 210) * SS, (CY + 210) * SS],
+    [(CX - 320) * SS, (CY - 320) * SS, (CX + 320) * SS, (CY + 320) * SS],
     outline=CREAM,
     width=52 * SS,
 )
 d.ellipse(
-    [(CX - 228) * SS, (CY - 228) * SS, (CX + 228) * SS, (CY + 228) * SS],
+    [(CX - 346) * SS, (CY - 346) * SS, (CX + 346) * SS, (CY + 346) * SS],
     outline=GREEN,
     width=3 * SS,
 )
 d.ellipse(
-    [(CX - 192) * SS, (CY - 192) * SS, (CX + 192) * SS, (CY + 192) * SS],
+    [(CX - 294) * SS, (CY - 294) * SS, (CX + 294) * SS, (CY + 294) * SS],
     outline=GREEN,
     width=3 * SS,
 )
 
 # Arc captions around the medallion.
-arc_text(CX, CY, 610, "OMACOM FOUNDATION NOTE", font(SERIF, 64), CREAM, 200, 340)
-arc_text(CX, CY, 616, "IN PATRONS WE TRUST", font(SERIF, 46), GOLD, 150, 30, flip=True)
+arc_text(CX, CY, 970, "OMACOM FOUNDATION NOTE", font(SERIF, 92), CREAM, 200, 340)
+arc_text(CX, CY, 980, "IN PATRONS WE TRUST", font(SERIF, 66), GOLD, 150, 30, flip=True)
 
 # ── Headline and denomination ───────────────────────────────────────────────
 text_at(W // 2, 1755, "ONE MILLION DOLLARS", font(SERIF, 92), GOLD, tracking=26)
