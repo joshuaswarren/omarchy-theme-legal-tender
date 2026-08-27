@@ -70,44 +70,74 @@ def scene(fn):
 # ─────────────────────────────────────────────────────────────────────────
 @scene
 def scene_foundation_note(p):
-    p.border(((SZ(56), 4), (SZ(72), 1), (SZ(102), 2)))
-    p.microprint(Y(86))
-    p.microprint(H - Y(96))
-    p.text_at(W / 2, Y(168), "THE OLIGARCHY \u00b7 FREE SOFTWARE \u00b7 EXPENSIVE PATRONS",
-              p.font(SERIF, SZ(42)), GREEN, tracking=X(10))
+    # A classic note hierarchy: header, seal, value, patrons, signatures.
+    # Nothing crosses the medallion or denomination plaque.
+    p.border(((42, 4), (56, 1), (82, 2)))
+    p.microprint(58)
+    p.microprint(H - 64)
+    p.text_at(
+        W / 2,
+        112,
+        "THE OLIGARCHY · FREE SOFTWARE · EXPENSIVE PATRONS",
+        p.font(SERIF, 34),
+        GREEN_BRIGHT,
+        tracking=8,
+    )
 
-    p.lattice_band(Y(1000), Y(1130), GREEN_DIM, waves=30, strands=18, width=2)
+    # Four small value seals stay in the corners and out of the copy.
+    for cx, cy in (
+        (210, 210),
+        (W - 210, 210),
+        (210, H - 210),
+        (W - 210, H - 210),
+    ):
+        p.d.ellipse(
+            [p.s(cx - 132), p.s(cy - 132), p.s(cx + 132), p.s(cy + 132)],
+            fill=CREAM,
+        )
+        p.rosette(cx, cy, 122, 102, GREEN_INK, petals=14, width=4)
+        p.rosette(cx, cy, 86, 72, GREEN, petals=28, width=3)
+        p.text_at(cx, cy, "1M", p.font(SERIF, 82), GREEN_INK)
 
-    for cx, cy in ((X(300), Y(300)), (W - X(300), Y(300)),
-                   (X(300), H - Y(300)), (W - X(300), H - Y(300))):
-        p.d.ellipse([p.s(cx - SZ(205)), p.s(cy - SZ(205)), p.s(cx + SZ(205)), p.s(cy + SZ(205))],
-                    fill=CREAM)
-        p.rosette(cx, cy, SZ(190), SZ(158), GREEN_INK, petals=14, width=4)
-        p.rosette(cx, cy, SZ(132), SZ(112), GREEN, petals=28, width=3)
-        p.text_at(cx, cy, "1M", p.font(SERIF, SZ(130)), GREEN_INK)
+    # The seal owns the center. No horizontal band cuts through it.
+    cx, cy = W / 2, 760
+    p.d.ellipse(
+        [p.s(cx - 220), p.s(cy - 220), p.s(cx + 220), p.s(cy + 220)],
+        fill=CREAM,
+    )
+    p.o_medallion(cx, cy, scale=0.56)
 
-    p.d.ellipse([p.s(W / 2 - SZ(290)), p.s(Y(1150) - SZ(290)),
-                 p.s(W / 2 + SZ(290)), p.s(Y(1150) + SZ(290))], fill=CREAM)
-    p.o_medallion(W / 2, Y(1150), scale=YS)
-    p.d.rounded_rectangle([p.s(X(340)), p.s(Y(1720)), p.s(W - X(340)), p.s(Y(1975))],
-                          radius=SZ(44), fill=CREAM)
-    p.text_at(W / 2, Y(1848), "ONE MILLION DOLLARS", p.font(SERIF, SZ(130)), GREEN_INK,
-              tracking=X(24))
-    p.patron_stars(W / 2, Y(1910), GREEN_INK)
-    p.serials("OG 0.001% 1M")
+    # Serials sit in open fields, away from the seal and signatures.
+    p.serials(
+        "OG 0.001% 1M",
+        size=34,
+        spots=[(420, 410), (W - 760, 1200)],
+    )
 
-    sig, cap = p.font(SERIF_IT, SZ(52)), p.font(SERIF, SZ(26))
-    p.text_at(X(560), Y(2050), "D. H. Hansson", sig, CREAM)
-    p.d.line([p.s(X(360)), p.s(Y(2085)), p.s(X(760)), p.s(Y(2085))], fill=GREEN,
-             width=int(2 * p.ss))
-    p.text_at(X(560), Y(2115), "BENEVOLENT DICTATOR FOR LIFE", cap, GREEN, tracking=X(4))
-    p.text_at(W - X(560), Y(2050), "you@omarchy", sig, CREAM)
-    p.d.line([p.s(W - X(760)), p.s(Y(2085)), p.s(W - X(360)), p.s(Y(2085))], fill=GREEN,
-             width=int(2 * p.ss))
-    p.text_at(W - X(560), Y(2115), "PATRON OF THE ARTS", cap, GREEN, tracking=X(4))
-    p.text_at(W / 2, Y(2115), "SERIES 2026", cap, GREEN, tracking=X(6))
-    p.text_at(W / 2, Y(2340), "THIS NOTE IS LEGAL TENDER FOR ALL DEBTS, TECHNICAL AND OTHERWISE",
-              p.font(SERIF_REG, SZ(30)), GREEN_DIM, tracking=X(6))
+    # A single value plaque below the complete seal.
+    p.d.rounded_rectangle(
+        [p.s(590), p.s(1360), p.s(W - 590), p.s(1535)],
+        radius=34,
+        fill=CREAM,
+    )
+    p.text_at(
+        W / 2,
+        1448,
+        "ONE MILLION DOLLARS",
+        p.font(SERIF, 86),
+        GREEN_INK,
+        tracking=18,
+    )
+    p.patron_stars(W / 2, 1605, GOLD)
+
+    sig, cap = p.font(SERIF_IT, 42), p.font(SERIF, 21)
+    p.text_at(620, 1740, "D. H. Hansson", sig, CREAM)
+    p.d.line([p.s(430), p.s(1772), p.s(810), p.s(1772)], fill=GREEN, width=4)
+    p.text_at(620, 1802, "BENEVOLENT DICTATOR FOR LIFE", cap, GREEN_BRIGHT, tracking=3)
+    p.text_at(W - 620, 1740, "you@omarchy", sig, CREAM)
+    p.d.line([p.s(W - 810), p.s(1772), p.s(W - 430), p.s(1772)], fill=GREEN, width=4)
+    p.text_at(W - 620, 1802, "PATRON OF THE ARTS", cap, GREEN_BRIGHT, tracking=3)
+    p.text_at(W / 2, 1778, "SERIES 2026", cap, GREEN, tracking=5)
 
 
 # ─────────────────────────────────────────────────────────────────────────
