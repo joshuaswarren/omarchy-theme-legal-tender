@@ -31,12 +31,24 @@ MONO_BOLD = "/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf"
 
 MICROPRINT = "ELITE CAPITAL \u00b7 PUBLIC CODE \u00b7 ZERO DOLLARS \u00b7 SEVERAL BILLIONAIRES \u00b7 "
 
+# Final wallpaper canvas and its 5% safe area. Scenes compose onto a
+# smaller content canvas that a caller mats onto this full canvas at an
+# inset equal to the margins below, so anything drawn inside the content
+# canvas structurally lands inside the safe area. The runtime checks below
+# are a second, independent numeric guarantee for text and other critical
+# bounds, keyed to these same numbers.
+FULL_W, FULL_H = 3840, 2160
+SAFE_X0, SAFE_X1 = 192, FULL_W - 192
+SAFE_Y0, SAFE_Y1 = 108, FULL_H - 108
+
 
 class Plate:
     """A supersampled engraving canvas bound to one image."""
 
-    def __init__(self, w, h, bg=BG, ss=2):
+    def __init__(self, w, h, bg=BG, ss=2, origin=(0, 0), safe_check=True):
         self.w, self.h, self.ss = w, h, ss
+        self.origin = origin
+        self.safe_check = safe_check
         self.img = Image.new("RGB", (w * ss, h * ss), bg)
         self.d = ImageDraw.Draw(self.img)
 
@@ -54,6 +66,24 @@ class Plate:
         else:
             out.save(path, "JPEG", quality=quality, optimize=True)
         return path
+
+    def check_safe(self, x0, y0, x1, y1, label):
+        """Assert a critical element's bbox (content-canvas coords) lands
+        inside the 5% safe area once this plate is matted at self.origin."""
+        if not self.safe_check:
+            return
+        ox, oy = self.origin
+        ax0, ax1 = ox + min(x0, x1), ox + max(x0, x1)
+        ay0, ay1 = oy + min(y0, y1), oy + max(y0, y1)
+        assert SAFE_X0 - 0.5 <= ax0 and ax1 <= SAFE_X1 + 0.5 and \
+            SAFE_Y0 - 0.5 <= ay0 and ay1 <= SAFE_Y1 + 0.5, (
+            f"{label} at ({ax0:.0f},{ay0:.0f})-({ax1:.0f},{ay1:.0f}) breaches "
+            f"safe area x[{SAFE_X0}..{SAFE_X1}] y[{SAFE_Y0}..{SAFE_Y1}]"
+        )
+
+    def _check_bbox(self, bbox, label):
+        x0, y0, x1, y1 = (v / self.ss for v in bbox)
+        self.check_safe(x0, y0, x1, y1, label)
 
     # ── ornaments ───────────────────────────────────────────────────────
     def rosette(self, cx, cy, r_outer, r_inner, color, petals=24, turns=360, width=1):
@@ -161,28 +191,36 @@ class Plate:
     def text_at(self, x, y, s, fnt, color, anchor="mm", tracking=0):
         if tracking == 0:
             self.d.text((self.s(x), self.s(y)), s, font=fnt, fill=color, anchor=anchor)
+            bbox = self.d.textbbox((self.s(x), self.s(y)), s, font=fnt, anchor=anchor)
+            self._check_bbox(bbox, f"text {s[:24]!r}")
             return
         total = sum(self.d.textlength(c, font=fnt) for c in s) + self.s(tracking) * (len(s) - 1)
-        cx = self.s(x) - (total / 2 if "m" in anchor else 0)
+        if anchor[0] == "m":
+            cx = self.s(x) - total / 2
+        elif anchor[0] == "r":
+            cx = self.s(x) - total
+        else:
+            cx = self.s(x)
+        x0 = cx
         for c in s:
             w = self.d.textlength(c, font=fnt)
             self.d.text((cx, self.s(y)), c, font=fnt, fill=color, anchor="lm")
             cx += w + self.s(tracking)
-
-    def text_left(self, x, y, s, fnt, color, anchor="lm", tracking=0):
-        cx = self.s(x)
-        for c in s:
-            self.d.text((cx, self.s(y)), c, font=fnt, fill=color, anchor=anchor)
-            cx += self.d.textlength(c, font=fnt) + self.s(tracking)
+        asc, desc = fnt.getmetrics()
+        self._check_bbox((x0, self.s(y) - asc, cx - self.s(tracking), self.s(y) + desc),
+                          f"text {s[:24]!r}")
 
     def arc_text(self, cx, cy, radius, text, fnt, color, start_deg, end_deg, flip=False):
         """Characters along an arc, each rotated to the tangent."""
         n = len(text)
+        xs, ys = [], []
         for i, ch in enumerate(text):
             frac = i / max(n - 1, 1)
             ang = math.radians(start_deg + (end_deg - start_deg) * frac)
             x = self.s(cx) + self.s(radius) * math.cos(ang)
             y = self.s(cy) + self.s(radius) * math.sin(ang)
+            xs.append(x)
+            ys.append(y)
             rot = math.degrees(ang) + (-90 if flip else 90)
             glyph = Image.new("RGBA", (fnt.size * 2 + 8, fnt.size * 2 + 8), (0, 0, 0, 0))
             gd = ImageDraw.Draw(glyph)
@@ -190,6 +228,9 @@ class Plate:
             gd.text((half, half), ch, font=fnt, fill=color, anchor="mm")
             glyph = glyph.rotate(-rot, resample=Image.BICUBIC, center=(half, half))
             self.img.paste(glyph, (int(x - half), int(y - half)), glyph)
+        pad = self.s(fnt.size) / 2 + 4
+        self._check_bbox((min(xs) - pad, min(ys) - pad, max(xs) + pad, max(ys) + pad),
+                          f"arc text {text[:24]!r}")
 
     def text_along(self, x0, y0, angle_deg, s, fnt, color, anchor_mid=True):
         """Whole string rotated to an arbitrary angle, anchored at (x0, y0)."""
@@ -208,6 +249,8 @@ class Plate:
         else:
             px, py = int(self.s(x0)), int(self.s(y0))
         self.img.paste(strip, (px, py), strip)
+        self._check_bbox((px, py, px + strip.width, py + strip.height),
+                          f"text-along {s[:24]!r}")
 
     # ── note furniture ──────────────────────────────────────────────────
     def border(self, rules, color=GREEN):
@@ -218,6 +261,7 @@ class Plate:
                 outline=color,
                 width=int(wd * self.ss),
             )
+            self.check_safe(m, m, self.w - m, self.h - m, "border rule")
 
     def microprint(self, y, color=GREEN, size=11, text=None, x0=130, x1=None):
         """A line of tiny repeated text between the border rules. Decorative."""
@@ -230,6 +274,7 @@ class Plate:
         while x < end:
             self.d.text((x, self.s(y)), text, font=fnt, fill=color)
             x += unit
+        self.check_safe(x0, y - size, x1, y + size, "microprint")
 
     def patron_stars(self, cx, cy, color=GOLD):
         """Eight founding patrons, then two smaller ones, added later."""
@@ -241,8 +286,11 @@ class Plate:
 
     def serials(self, s, color=RED, size=44, spots=None):
         fnt = self.font(MONO_BOLD, size)
-        for x, y in spots or [(430, 470), (self.w - 950, 1620)]:
+        spots = spots or [(self.w * 0.112, self.h * 0.184), (self.w * 0.753, self.h * 0.633)]
+        for x, y in spots:
             self.d.text((self.s(x), self.s(y)), s, font=fnt, fill=color)
+            self._check_bbox(self.d.textbbox((self.s(x), self.s(y)), s, font=fnt),
+                              f"serial {s!r}")
 
     def o_medallion(self, cx, cy, scale=1.0, ring=CREAM, green=GREEN, dim=GREEN_DIM,
                     gold=GOLD, caption_top="OMACOM FOUNDATION NOTE",

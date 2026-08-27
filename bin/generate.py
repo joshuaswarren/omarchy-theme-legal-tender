@@ -1,10 +1,22 @@
 #!/usr/bin/env python3
-"""Render the nine Legal Tender backgrounds at 3840x2560 (3:2).
+"""Render the nine Legal Tender backgrounds natively at 3840x2160 (16:9).
 
 Nine distinct engravings of the Omacom Foundation Note, one per plate:
 full note, medallion macro, guilloche field, seal of stars, corner
 denomination, signature plate, serial strip, inverse cream note, and a
 minimal gold seal. Also writes the canonical hero and the unlock glyph.
+
+Every scene composes onto a 3456x1944 content canvas (also 16:9) that is
+then matted onto the full 3840x2160 wallpaper at a 192/108px inset. That
+inset is exactly the engraving's 5% safe area (x 192..3648, y 108..2052),
+so anything a scene draws inside the content canvas structurally lands
+inside the safe area — Plate's runtime checks (engrave.py) give a second,
+independent numeric guarantee for text, serials, arcs, and borders.
+
+The scenes were originally tuned for a 3840x2560 (3:2) canvas. X()/Y()/SZ()
+below port each absolute coordinate from that old canvas onto the new one
+by a fixed per-axis scale, preserving the approved composition's relative
+layout and non-collisions rather than stretching or center-cropping pixels.
 
 Run from the repo root:  bin/generate.py
 """
@@ -22,7 +34,28 @@ from engrave import (
     GREEN_INK, MONO, MONO_BOLD, Plate, RED, SERIF, SERIF_IT, SERIF_REG,
 )
 
-W, H = 3840, 2560
+# Content canvas: 16:9, inset within the final wallpaper by the safe margin.
+W, H = 3456, 1944
+# Final wallpaper canvas and the inset that centers the content canvas in it.
+FULL_W, FULL_H = 3840, 2160
+MARGIN_X, MARGIN_Y = (FULL_W - W) // 2, (FULL_H - H) // 2  # 192, 108
+
+# The scenes below were designed for this now-retired 3:2 canvas.
+OLD_W, OLD_H = 3840, 2560
+XS, YS = W / OLD_W, H / OLD_H  # 0.9, 0.759375
+
+
+def X(v):
+    """Port an absolute X position/offset from the old 3:2 canvas."""
+    return v * XS
+
+
+def Y(v):
+    """Port an absolute Y position/offset from the old 3:2 canvas."""
+    return v * YS
+
+
+SZ = Y  # sizes (radii, font points, tracking, tick lengths) use the Y scale
 
 SCENES = []  # (slug, builder) filled by the decorators below
 
@@ -37,38 +70,44 @@ def scene(fn):
 # ─────────────────────────────────────────────────────────────────────────
 @scene
 def scene_foundation_note(p):
-    p.border(((56, 4), (72, 1), (102, 2)))
-    p.microprint(86)
-    p.microprint(H - 96)
-    p.text_at(W / 2, 168, "THE OLIGARCHY \u00b7 FREE SOFTWARE \u00b7 EXPENSIVE PATRONS",
-              p.font(SERIF, 42), GREEN, tracking=10)
+    p.border(((SZ(56), 4), (SZ(72), 1), (SZ(102), 2)))
+    p.microprint(Y(86))
+    p.microprint(H - Y(96))
+    p.text_at(W / 2, Y(168), "THE OLIGARCHY \u00b7 FREE SOFTWARE \u00b7 EXPENSIVE PATRONS",
+              p.font(SERIF, SZ(42)), GREEN, tracking=X(10))
 
-    p.lattice_band(1000, 1130, GREEN_DIM, waves=30, strands=18, width=2)
+    p.lattice_band(Y(1000), Y(1130), GREEN_DIM, waves=30, strands=18, width=2)
 
-    for cx, cy in ((300, 300), (W - 300, 300), (300, H - 300), (W - 300, H - 300)):
-        p.d.ellipse([p.s(cx - 205), p.s(cy - 205), p.s(cx + 205), p.s(cy + 205)], fill=CREAM)
-        p.rosette(cx, cy, 190, 158, GREEN_INK, petals=14, width=4)
-        p.rosette(cx, cy, 132, 112, GREEN, petals=28, width=3)
-        p.text_at(cx, cy, "1M", p.font(SERIF, 130), GREEN_INK)
+    for cx, cy in ((X(300), Y(300)), (W - X(300), Y(300)),
+                   (X(300), H - Y(300)), (W - X(300), H - Y(300))):
+        p.d.ellipse([p.s(cx - SZ(205)), p.s(cy - SZ(205)), p.s(cx + SZ(205)), p.s(cy + SZ(205))],
+                    fill=CREAM)
+        p.rosette(cx, cy, SZ(190), SZ(158), GREEN_INK, petals=14, width=4)
+        p.rosette(cx, cy, SZ(132), SZ(112), GREEN, petals=28, width=3)
+        p.text_at(cx, cy, "1M", p.font(SERIF, SZ(130)), GREEN_INK)
 
-    p.d.ellipse([p.s(W / 2 - 290), p.s(1150 - 290), p.s(W / 2 + 290), p.s(1150 + 290)],
-                fill=CREAM)
-    p.o_medallion(W / 2, 1150)
-    p.d.rounded_rectangle([p.s(340), p.s(1720), p.s(W - 340), p.s(1975)], radius=44, fill=CREAM)
-    p.text_at(W / 2, 1848, "ONE MILLION DOLLARS", p.font(SERIF, 130), GREEN_INK, tracking=24)
-    p.patron_stars(W / 2, 1910, GREEN_INK)
+    p.d.ellipse([p.s(W / 2 - SZ(290)), p.s(Y(1150) - SZ(290)),
+                 p.s(W / 2 + SZ(290)), p.s(Y(1150) + SZ(290))], fill=CREAM)
+    p.o_medallion(W / 2, Y(1150), scale=YS)
+    p.d.rounded_rectangle([p.s(X(340)), p.s(Y(1720)), p.s(W - X(340)), p.s(Y(1975))],
+                          radius=SZ(44), fill=CREAM)
+    p.text_at(W / 2, Y(1848), "ONE MILLION DOLLARS", p.font(SERIF, SZ(130)), GREEN_INK,
+              tracking=X(24))
+    p.patron_stars(W / 2, Y(1910), GREEN_INK)
     p.serials("OG 0.001% 1M")
 
-    sig, cap = p.font(SERIF_IT, 52), p.font(SERIF, 26)
-    p.text_at(560, 2050, "D. H. Hansson", sig, CREAM)
-    p.d.line([p.s(360), p.s(2085), p.s(760), p.s(2085)], fill=GREEN, width=int(2 * p.ss))
-    p.text_at(560, 2115, "BENEVOLENT DICTATOR FOR LIFE", cap, GREEN, tracking=4)
-    p.text_at(W - 560, 2050, "you@omarchy", sig, CREAM)
-    p.d.line([p.s(W - 760), p.s(2085), p.s(W - 360), p.s(2085)], fill=GREEN, width=int(2 * p.ss))
-    p.text_at(W - 560, 2115, "PATRON OF THE ARTS", cap, GREEN, tracking=4)
-    p.text_at(W / 2, 2115, "SERIES 2026", cap, GREEN, tracking=6)
-    p.text_at(W / 2, 2340, "THIS NOTE IS LEGAL TENDER FOR ALL DEBTS, TECHNICAL AND OTHERWISE",
-              p.font(SERIF_REG, 30), GREEN_DIM, tracking=6)
+    sig, cap = p.font(SERIF_IT, SZ(52)), p.font(SERIF, SZ(26))
+    p.text_at(X(560), Y(2050), "D. H. Hansson", sig, CREAM)
+    p.d.line([p.s(X(360)), p.s(Y(2085)), p.s(X(760)), p.s(Y(2085))], fill=GREEN,
+             width=int(2 * p.ss))
+    p.text_at(X(560), Y(2115), "BENEVOLENT DICTATOR FOR LIFE", cap, GREEN, tracking=X(4))
+    p.text_at(W - X(560), Y(2050), "you@omarchy", sig, CREAM)
+    p.d.line([p.s(W - X(760)), p.s(Y(2085)), p.s(W - X(360)), p.s(Y(2085))], fill=GREEN,
+             width=int(2 * p.ss))
+    p.text_at(W - X(560), Y(2115), "PATRON OF THE ARTS", cap, GREEN, tracking=X(4))
+    p.text_at(W / 2, Y(2115), "SERIES 2026", cap, GREEN, tracking=X(6))
+    p.text_at(W / 2, Y(2340), "THIS NOTE IS LEGAL TENDER FOR ALL DEBTS, TECHNICAL AND OTHERWISE",
+              p.font(SERIF_REG, SZ(30)), GREEN_DIM, tracking=X(6))
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -76,31 +115,34 @@ def scene_foundation_note(p):
 # ─────────────────────────────────────────────────────────────────────────
 @scene
 def scene_medallion_macro(p):
-    p.lattice_band(60, 240, GREEN_DIM, waves=26, strands=14, width=2)
-    p.lattice_band(H - 240, H - 60, GREEN_DIM, waves=26, strands=14, width=2)
-    p.d.ellipse([p.s(W / 2 - 560), p.s(H / 2 + 120 - 560), p.s(W / 2 + 560), p.s(H / 2 + 120 + 560)],
+    p.lattice_band(Y(60), Y(240), GREEN_DIM, waves=26, strands=14, width=2)
+    p.lattice_band(H - Y(240), H - Y(60), GREEN_DIM, waves=26, strands=14, width=2)
+    cx, cy = W / 2, H / 2 + Y(120)
+    p.d.ellipse([p.s(cx - SZ(560)), p.s(cy - SZ(560)), p.s(cx + SZ(560)), p.s(cy + SZ(560))],
                 fill=CREAM)
-    p.rosette(W / 2, H / 2 + 120, 1620, 1460, GREEN, petals=48, width=5)
-    p.rosette(W / 2, H / 2 + 120, 1500, 1300, GREEN_DIM, petals=56, width=3)
-    p.rosette(W / 2, H / 2 + 120, 1240, 1160, GOLD, petals=72, width=3)
-    p.radial(W / 2, H / 2 + 120, 760, 1240, GREEN, step=3, width=2)
+    p.rosette(cx, cy, SZ(1620), SZ(1460), GREEN, petals=48, width=5)
+    p.rosette(cx, cy, SZ(1500), SZ(1300), GREEN_DIM, petals=56, width=3)
+    p.rosette(cx, cy, SZ(1240), SZ(1160), GOLD, petals=72, width=3)
+    p.radial(cx, cy, SZ(760), SZ(1240), GREEN, step=3, width=2)
 
-    cx, cy, r = W / 2, H / 2 + 120, 640
+    r = SZ(640)
     p.d.ellipse([p.s(cx - r), p.s(cy - r), p.s(cx + r), p.s(cy + r)],
                 outline=CREAM, width=int(120 * p.ss))
-    p.d.ellipse([p.s(cx - r - 56), p.s(cy - r - 56), p.s(cx + r + 56), p.s(cy + r + 56)],
+    p.d.ellipse([p.s(cx - r - SZ(56)), p.s(cy - r - SZ(56)), p.s(cx + r + SZ(56)), p.s(cy + r + SZ(56))],
                 outline=GREEN, width=int(6 * p.ss))
-    p.d.ellipse([p.s(cx - r + 56), p.s(cy - r + 56), p.s(cx + r - 56), p.s(cy + r - 56)],
+    p.d.ellipse([p.s(cx - r + SZ(56)), p.s(cy - r + SZ(56)), p.s(cx + r - SZ(56)), p.s(cy + r - SZ(56))],
                 outline=GREEN, width=int(6 * p.ss))
-    p.arc_text(cx, cy, 1250, "OMACOM FOUNDATION", p.font(SERIF, 132), CREAM, 200, 340)
-    p.arc_text(cx, cy, 1046, "IN PATRONS WE TRUST", p.font(SERIF, 96), GOLD, 150, 30, flip=True)
+    p.arc_text(cx, cy, SZ(1250), "OMACOM FOUNDATION", p.font(SERIF, SZ(132)), CREAM, 200, 340)
+    p.arc_text(cx, cy, SZ(1046), "IN PATRONS WE TRUST", p.font(SERIF, SZ(96)), GOLD, 150, 30,
+               flip=True)
 
-    for x, y in ((160, 160), (W - 160, 160), (160, H - 160), (W - 160, H - 160)):
-        p.crosshair(x, y, 46, CREAM, width=3)
-    plate = p.font(MONO, 40)
-    p.d.text((p.s(230), p.s(120)), "PLATE 02", font=plate, fill=GREEN_DIM)
-    p.d.text((p.s(230), p.s(H - 168)), "SERIES 2026", font=plate, fill=GREEN_DIM)
-    p.d.text((p.s(W - 430), p.s(H - 168)), "OG 0.001%", font=p.font(MONO_BOLD, 40), fill=RED)
+    for x, y in ((X(160), Y(160)), (W - X(160), Y(160)),
+                 (X(160), H - Y(160)), (W - X(160), H - Y(160))):
+        p.crosshair(x, y, SZ(46), CREAM, width=3)
+    plate = p.font(MONO, SZ(40))
+    p.text_at(X(230), Y(120), "PLATE 02", plate, GREEN_BRIGHT, anchor="la")
+    p.text_at(X(230), H - Y(168), "SERIES 2026", plate, GREEN_BRIGHT, anchor="la")
+    p.text_at(W - X(430), H - Y(168), "OG 0.001%", p.font(MONO_BOLD, SZ(40)), RED, anchor="la")
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -109,34 +151,35 @@ def scene_medallion_macro(p):
 @scene
 def scene_guilloche_field(p):
     bands = [
-        (90, 380, GREEN, 14, 16, 3),
-        (430, 660, GREEN_DIM, 18, 14, 2),
-        (700, 1010, GREEN_BRIGHT, 10, 18, 3),
-        (1050, 1260, GOLD, 22, 12, 2),
-        (1300, 1610, GREEN, 12, 18, 3),
-        (1650, 1860, GREEN_DIM, 18, 14, 2),
-        (1900, 2210, GREEN_BRIGHT, 14, 16, 3),
-        (2250, 2470, GOLD, 20, 12, 2),
+        (Y(90), Y(380), GREEN, 14, 16, 3),
+        (Y(430), Y(660), GREEN_DIM, 18, 14, 2),
+        (Y(700), Y(1010), GREEN_BRIGHT, 10, 18, 3),
+        (Y(1050), Y(1260), GOLD, 22, 12, 2),
+        (Y(1300), Y(1610), GREEN, 12, 18, 3),
+        (Y(1650), Y(1860), GREEN_DIM, 18, 14, 2),
+        (Y(1900), Y(2210), GREEN_BRIGHT, 14, 16, 3),
+        (Y(2250), Y(2470), GOLD, 20, 12, 2),
     ]
-    for y0, y1 in ((430, 660), (1650, 1860)):
+    cream_bands = ((Y(430), Y(660)), (Y(1650), Y(1860)))
+    for y0, y1 in cream_bands:
         p.d.rectangle([0, p.s(y0), p.s(W), p.s(y1)], fill=CREAM)
-    bands[1] = (430, 660, GREEN_INK, 18, 14, 3)
-    bands[5] = (1650, 1860, GREEN_INK, 18, 14, 3)
+    bands[1] = (cream_bands[0][0], cream_bands[0][1], GREEN_INK, 18, 14, 3)
+    bands[5] = (cream_bands[1][0], cream_bands[1][1], GREEN_INK, 18, 14, 3)
     for y0, y1, col, waves, strands, wd in bands:
         p.lattice_band(y0, y1, col, waves=waves, strands=strands, width=wd)
 
     cx, cy = W / 2, H / 2
-    p.d.ellipse([p.s(cx - 330), p.s(cy - 330), p.s(cx + 330), p.s(cy + 330)],
+    p.d.ellipse([p.s(cx - SZ(330)), p.s(cy - SZ(330)), p.s(cx + SZ(330)), p.s(cy + SZ(330))],
                 outline=RED, width=int(10 * p.ss))
-    p.d.ellipse([p.s(cx - 300), p.s(cy - 300), p.s(cx + 300), p.s(cy + 300)],
+    p.d.ellipse([p.s(cx - SZ(300)), p.s(cy - SZ(300)), p.s(cx + SZ(300)), p.s(cy + SZ(300))],
                 outline=RED, width=int(3 * p.ss))
-    p.arc_text(cx, cy, 358, "TREASURY OF THE OLIGARCHY", p.font(SERIF, 52), RED, 195, 345)
-    p.arc_text(cx, cy, 362, "SECURITY FIELD", p.font(SERIF, 40), RED, 15, 165, flip=True)
-    p.text_at(cx, cy, "OG", p.font(SERIF, 190), CREAM_BRIGHT)
+    p.arc_text(cx, cy, SZ(358), "TREASURY OF THE OLIGARCHY", p.font(SERIF, SZ(52)), RED, 195, 345)
+    p.arc_text(cx, cy, SZ(362), "SECURITY FIELD", p.font(SERIF, SZ(40)), RED, 15, 165, flip=True)
+    p.text_at(cx, cy, "OG", p.font(SERIF, SZ(190)), CREAM_BRIGHT)
 
-    p.d.text((p.s(200), p.s(120)), "03", font=p.font(MONO_BOLD, 56), fill=GREEN_DIM)
-    p.text_at(W / 2, 2330, "GUILLOCHE SECURITY FIELD \u00b7 DO NOT PHOTOCOPY",
-              p.font(SERIF, 36), CREAM, tracking=10)
+    p.text_at(X(200), Y(120), "03", p.font(MONO_BOLD, SZ(56)), CREAM_BRIGHT, anchor="la")
+    p.text_at(W / 2, Y(2330), "GUILLOCHE SECURITY FIELD \u00b7 DO NOT PHOTOCOPY",
+              p.font(SERIF, SZ(36)), CREAM, tracking=X(10))
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -144,36 +187,37 @@ def scene_guilloche_field(p):
 # ─────────────────────────────────────────────────────────────────────────
 @scene
 def scene_seal_of_stars(p):
-    p.rays(W / 2, H / 2, 1000, 1780, GREEN_DIM, count=72, width=5)
-    p.rays(W / 2, H / 2, 760, 1100, GREEN, count=36, width=4)
-
     cx, cy = W / 2, H / 2
-    p.d.ellipse([p.s(cx - 800), p.s(cy - 800), p.s(cx + 800), p.s(cy + 800)], fill=GOLD)
-    p.d.ellipse([p.s(cx - 690), p.s(cy - 690), p.s(cx + 690), p.s(cy + 690)],
+    p.rays(cx, cy, SZ(1000), SZ(1780), GREEN_DIM, count=72, width=5)
+    p.rays(cx, cy, SZ(760), SZ(1100), GREEN, count=36, width=4)
+
+    p.d.ellipse([p.s(cx - SZ(800)), p.s(cy - SZ(800)), p.s(cx + SZ(800)), p.s(cy + SZ(800))],
+                fill=GOLD)
+    p.d.ellipse([p.s(cx - SZ(690)), p.s(cy - SZ(690)), p.s(cx + SZ(690)), p.s(cy + SZ(690))],
                 fill="#0d1812")
-    p.d.ellipse([p.s(cx - 800), p.s(cy - 800), p.s(cx + 800), p.s(cy + 800)],
+    p.d.ellipse([p.s(cx - SZ(800)), p.s(cy - SZ(800)), p.s(cx + SZ(800)), p.s(cy + SZ(800))],
                 outline=GOLD, width=int(18 * p.ss))
-    p.d.ellipse([p.s(cx - 770), p.s(cy - 770), p.s(cx + 770), p.s(cy + 770)],
+    p.d.ellipse([p.s(cx - SZ(770)), p.s(cy - SZ(770)), p.s(cx + SZ(770)), p.s(cy + SZ(770))],
                 outline=GOLD, width=int(3 * p.ss))
-    p.d.ellipse([p.s(cx - 690), p.s(cy - 690), p.s(cx + 690), p.s(cy + 690)],
+    p.d.ellipse([p.s(cx - SZ(690)), p.s(cy - SZ(690)), p.s(cx + SZ(690)), p.s(cy + SZ(690))],
                 outline=GREEN, width=int(4 * p.ss))
-    p.arc_text(cx, cy, 800, "OMACOM FOUNDATION", p.font(SERIF, 96), GOLD, 198, 342)
-    p.arc_text(cx, cy, 806, "SERIES 2026", p.font(SERIF, 64), CREAM, 155, 25, flip=True)
+    p.arc_text(cx, cy, SZ(800), "OMACOM FOUNDATION", p.font(SERIF, SZ(96)), GOLD, 198, 342)
+    p.arc_text(cx, cy, SZ(806), "SERIES 2026", p.font(SERIF, SZ(64)), CREAM, 155, 25, flip=True)
 
     for i in range(8):
         a = math.radians(-90 + i * 45)
-        p.star(cx + 620 * math.cos(a), cy + 620 * math.sin(a), 64, CREAM)
-    p.star(cx + 500, cy + 500, 30, GOLD)
-    p.star(cx - 500, cy - 500, 30, GOLD)
+        p.star(cx + SZ(620) * math.cos(a), cy + SZ(620) * math.sin(a), SZ(64), CREAM)
+    p.star(cx + SZ(500), cy + SZ(500), SZ(30), GOLD)
+    p.star(cx - SZ(500), cy - SZ(500), SZ(30), GOLD)
 
-    r = 330
+    r = SZ(330)
     p.d.ellipse([p.s(cx - r), p.s(cy - r), p.s(cx + r), p.s(cy + r)], fill=CREAM)
     p.d.ellipse([p.s(cx - r), p.s(cy - r), p.s(cx + r), p.s(cy + r)],
                 outline=GREEN_INK, width=int(58 * p.ss))
-    p.star(cx, cy, 190, GOLD)
-    p.dot_ring(cx, cy, 655, GREEN, count=8, dr=6)
+    p.star(cx, cy, SZ(190), GOLD)
+    p.dot_ring(cx, cy, SZ(655), GREEN, count=8, dr=6)
 
-    p.serials("OG 0.001% \u2605", size=40, spots=[(260, 220), (W - 700, H - 280)])
+    p.serials("OG 0.001% \u2605", size=SZ(40), spots=[(X(260), Y(220)), (W - X(700), H - Y(280))])
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -181,27 +225,30 @@ def scene_seal_of_stars(p):
 # ─────────────────────────────────────────────────────────────────────────
 @scene
 def scene_corner_denomination(p):
-    for cx, cy in ((430, 430), (W - 430, 430), (430, H - 430), (W - 430, H - 430)):
-        p.d.ellipse([p.s(cx - 470), p.s(cy - 470), p.s(cx + 470), p.s(cy + 470)], fill=CREAM)
-        p.rosette(cx, cy, 440, 400, GREEN_INK, petals=28, width=4)
-        p.rosette(cx, cy, 360, 335, GREEN, petals=36, width=3)
-        p.text_at(cx, cy + 10, "100", p.font(SERIF, 420), GREEN_INK)
+    for cx, cy in ((X(430), Y(430)), (W - X(430), Y(430)),
+                   (X(430), H - Y(430)), (W - X(430), H - Y(430))):
+        p.d.ellipse([p.s(cx - SZ(470)), p.s(cy - SZ(470)), p.s(cx + SZ(470)), p.s(cy + SZ(470))],
+                    fill=CREAM)
+        p.rosette(cx, cy, SZ(440), SZ(400), GREEN_INK, petals=28, width=4)
+        p.rosette(cx, cy, SZ(360), SZ(335), GREEN, petals=36, width=3)
+        p.text_at(cx, cy + SZ(10), "100", p.font(SERIF, SZ(420)), GREEN_INK)
 
-    p.border(((660, 1), (672, 1)), GREEN_DIM)
+    p.border(((SZ(660), 1), (SZ(672), 1)), GREEN_DIM)
 
-    cx, cy = W / 2, H / 2 - 60
-    p.rosette(cx, cy, 400, 350, GREEN, petals=32, width=3)
-    p.rosette(cx, cy, 330, 300, GOLD, petals=48, width=2)
-    r = 200
+    cx, cy = W / 2, H / 2 - Y(60)
+    p.rosette(cx, cy, SZ(400), SZ(350), GREEN, petals=32, width=3)
+    p.rosette(cx, cy, SZ(330), SZ(300), GOLD, petals=48, width=2)
+    r = SZ(200)
     p.d.ellipse([p.s(cx - r), p.s(cy - r), p.s(cx + r), p.s(cy + r)],
                 outline=CREAM, width=int(30 * p.ss))
-    p.text_at(cx, cy, "OG", p.font(SERIF, 150), GOLD)
-    p.arc_text(cx, cy, 440, "ONE HUNDRED DOLLARS", p.font(SERIF, 56), CREAM, 195, 345)
+    p.text_at(cx, cy, "OG", p.font(SERIF, SZ(150)), GOLD)
+    p.arc_text(cx, cy, SZ(440), "ONE HUNDRED DOLLARS", p.font(SERIF, SZ(56)), CREAM, 195, 345)
 
-    p.lattice_band(1660, 1770, GREEN_DIM, waves=30, strands=16, width=2)
-    p.text_at(W / 2, 1900, "ONE HUNDRED DOLLARS", p.font(SERIF, 88), GOLD, tracking=24)
-    p.patron_stars(W / 2, 2030)
-    p.serials("OG 0.001% 100", size=48, spots=[(W / 2 - 600, 1150), (W / 2 + 300, 1150)])
+    p.lattice_band(Y(1660), Y(1770), GREEN_DIM, waves=30, strands=16, width=2)
+    p.text_at(W / 2, Y(1900), "ONE HUNDRED DOLLARS", p.font(SERIF, SZ(88)), GOLD, tracking=X(24))
+    p.patron_stars(W / 2, Y(2030))
+    p.serials("OG 0.001% 100", size=SZ(48),
+              spots=[(W / 2 - X(600), Y(1150)), (W / 2 + X(300), Y(1150))])
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -210,34 +257,45 @@ def scene_corner_denomination(p):
 @scene
 def scene_signature_plate(p):
     ink, ink_dim, proof_gold = GREEN_INK, "#57705f", "#8a6d2a"
-    p.hatch(120, 120, W - 120, H - 120, 45, 16, "#b9b29a", width=3)
-    p.microprint(88, ink_dim, size=16)
-    p.microprint(H - 98, ink_dim, size=16)
-    for cx, cy in ((300, 300), (W - 300, 300), (300, H - 300), (W - 300, H - 300)):
-        p.rosette(cx, cy, 190, 158, ink, petals=16, width=5)
-        p.rosette(cx, cy, 132, 112, ink_dim, petals=30, width=3)
-    p.lattice_band(1540, 1640, ink_dim, waves=26, strands=14, width=3)
-    p.border(((56, 5), (72, 2)), ink)
+    p.hatch(X(120), Y(120), W - X(120), H - Y(120), 45, 16, "#b9b29a", width=3)
+    p.microprint(Y(88), ink_dim, size=16)
+    p.microprint(H - Y(98), ink_dim, size=16)
+    for cx, cy in ((X(300), Y(300)), (W - X(300), Y(300)),
+                   (X(300), H - Y(300)), (W - X(300), H - Y(300))):
+        p.rosette(cx, cy, SZ(190), SZ(158), ink, petals=16, width=5)
+        p.rosette(cx, cy, SZ(132), SZ(112), ink_dim, petals=30, width=3)
+    p.lattice_band(Y(1540), Y(1640), ink_dim, waves=26, strands=14, width=3)
+    p.border(((SZ(56), 5), (SZ(72), 2)), ink)
 
-    p.d.rounded_rectangle([p.s(620), p.s(80), p.s(W - 620), p.s(260)], radius=36, fill=ink)
-    p.text_at(W / 2, 170, "SIGNING CEREMONY \u00b7 OMACOM FOUNDATION",
-              p.font(SERIF, 44), CREAM, tracking=12)
-    p.text_at(W / 2, 980, "D. H. Hansson", p.font(SERIF_IT, 420), ink)
-    p.d.line([p.s(320), p.s(1290), p.s(W - 320), p.s(1290)], fill=proof_gold, width=int(8 * p.ss))
-    p.d.line([p.s(320), p.s(1312), p.s(W - 320), p.s(1312)], fill=proof_gold, width=int(3 * p.ss))
-    p.text_at(W / 2, 1420, "BENEVOLENT DICTATOR FOR LIFE", p.font(SERIF, 64), proof_gold, tracking=22)
+    p.d.rounded_rectangle([p.s(X(620)), p.s(Y(80)), p.s(W - X(620)), p.s(Y(260))],
+                          radius=SZ(36), fill=ink)
+    p.text_at(W / 2, Y(170), "SIGNING CEREMONY \u00b7 OMACOM FOUNDATION",
+              p.font(SERIF, SZ(44)), CREAM, tracking=X(12))
+    p.text_at(W / 2, Y(980), "D. H. Hansson", p.font(SERIF_IT, SZ(420)), ink)
+    p.d.line([p.s(X(320)), p.s(Y(1290)), p.s(W - X(320)), p.s(Y(1290))], fill=proof_gold,
+             width=int(8 * p.ss))
+    p.d.line([p.s(X(320)), p.s(Y(1312)), p.s(W - X(320)), p.s(Y(1312))], fill=proof_gold,
+             width=int(3 * p.ss))
+    p.text_at(W / 2, Y(1420), "BENEVOLENT DICTATOR FOR LIFE", p.font(SERIF, SZ(64)), proof_gold,
+              tracking=X(22))
 
-    p.d.ellipse([p.s(W - 640 - 280), p.s(760 - 280), p.s(W - 640 + 280), p.s(760 + 280)], fill=ink)
-    p.rosette(W - 640, 760, 226, 196, RED, petals=22, width=5)
-    p.arc_text(W - 640, 760, 252, "NOTARY OF PATRONS", p.font(SERIF, 32), RED, 195, 345)
-    p.star(W - 640, 760, 78, RED)
+    seal_cx, seal_cy = W - X(640), Y(760)
+    p.d.ellipse([p.s(seal_cx - SZ(280)), p.s(seal_cy - SZ(280)),
+                 p.s(seal_cx + SZ(280)), p.s(seal_cy + SZ(280))], fill=ink)
+    p.rosette(seal_cx, seal_cy, SZ(226), SZ(196), RED, petals=22, width=5)
+    p.arc_text(seal_cx, seal_cy, SZ(252), "NOTARY OF PATRONS", p.font(SERIF, SZ(32)), RED, 195, 345)
+    p.star(seal_cx, seal_cy, SZ(78), RED)
 
-    p.d.rounded_rectangle([p.s(760), p.s(1810), p.s(W / 2 - 240), p.s(2080)], radius=40, fill=ink)
-    p.text_at(W / 2 - 750, 1930, "you@omarchy", p.font(SERIF_IT, 140), CREAM)
-    p.text_at(W / 2 - 750, 2038, "PATRON OF THE ARTS", p.font(SERIF, 36), "#8f9a85", tracking=8)
-    p.d.rounded_rectangle([p.s(W / 2 + 180), p.s(1790), p.s(W - 560), p.s(2090)], radius=40, fill=ink)
-    p.text_at(W / 2 + 750, 1930, "0.001%", p.font(MONO_BOLD, 120), RED)
-    p.text_at(W / 2 + 750, 2048, "THE REMAINDER", p.font(SERIF, 36), "#8f9a85", tracking=8)
+    p.d.rounded_rectangle([p.s(X(760)), p.s(Y(1810)), p.s(W / 2 - X(240)), p.s(Y(2080))],
+                          radius=SZ(40), fill=ink)
+    p.text_at(W / 2 - X(750), Y(1930), "you@omarchy", p.font(SERIF_IT, SZ(140)), CREAM)
+    p.text_at(W / 2 - X(750), Y(2038), "PATRON OF THE ARTS", p.font(SERIF, SZ(36)), "#8f9a85",
+              tracking=X(8))
+    p.d.rounded_rectangle([p.s(W / 2 + X(180)), p.s(Y(1790)), p.s(W - X(560)), p.s(Y(2090))],
+                          radius=SZ(40), fill=ink)
+    p.text_at(W / 2 + X(750), Y(1930), "0.001%", p.font(MONO_BOLD, SZ(120)), RED)
+    p.text_at(W / 2 + X(750), Y(2048), "THE REMAINDER", p.font(SERIF, SZ(36)), "#8f9a85",
+              tracking=X(8))
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -245,8 +303,8 @@ def scene_signature_plate(p):
 # ─────────────────────────────────────────────────────────────────────────
 @scene
 def scene_serial_strip(p):
-    p.rosette(330, 330, 260, 225, GREEN, petals=20, width=3)
-    p.rosette(W - 330, H - 330, 260, 225, GREEN, petals=20, width=3)
+    p.rosette(X(330), Y(330), SZ(260), SZ(225), GREEN, petals=20, width=3)
+    p.rosette(W - X(330), H - Y(330), SZ(260), SZ(225), GREEN, petals=20, width=3)
 
     # Diagonal cream band through the frame center.
     ang = -14.0
@@ -254,7 +312,7 @@ def scene_serial_strip(p):
     dx, dy = math.cos(a), math.sin(a)
     nx, ny = -dy, dx
     cxx, cyy = W / 2, H / 2
-    half_w = 330
+    half_w = SZ(330)
     far = W
     band = [
         (cxx + dx * far + nx * half_w, cyy + dy * far + ny * half_w),
@@ -263,7 +321,7 @@ def scene_serial_strip(p):
         (cxx - dx * far + nx * half_w, cyy - dy * far + ny * half_w),
     ]
     p.d.polygon([(p.s(x), p.s(y)) for x, y in band], fill=CREAM)
-    for off, wd in ((half_w + 18, 8), (half_w + 40, 3)):
+    for off, wd in ((half_w + SZ(18), 8), (half_w + SZ(40), 3)):
         edge = [
             (cxx + dx * far + nx * off, cyy + dy * far + ny * off),
             (cxx - dx * far + nx * off, cyy - dy * far + ny * off),
@@ -276,17 +334,18 @@ def scene_serial_strip(p):
         p.d.line([(p.s(x), p.s(y)) for x, y in edge], fill=GREEN, width=int(wd * p.ss))
 
     # Serial number printed along the band, in serial red.
-    p.text_along(cxx, cyy - 90, ang, "OG 0.001% 10B", p.font(MONO_BOLD, 170), RED)
-    p.text_along(cxx, cyy + 130, ang, "OG 0.001% 10B", p.font(MONO_BOLD, 90), GREEN_INK)
+    p.text_along(cxx, cyy - Y(90), ang, "OG 0.001% 10B", p.font(MONO_BOLD, SZ(170)), RED)
+    p.text_along(cxx, cyy + Y(130), ang, "OG 0.001% 10B", p.font(MONO_BOLD, SZ(90)), GREEN_INK)
     micro = "OG 0.001% \u00b7 ELITE CAPITAL \u00b7 PUBLIC CODE \u00b7 " * 4
-    p.text_along(cxx, cyy - 250, ang, micro, p.font(MONO, 34), GREEN_INK)
-    p.text_along(cxx, cyy + 255, ang, micro, p.font(MONO, 34), GREEN_INK)
+    p.text_along(cxx, cyy - Y(250), ang, micro, p.font(MONO, SZ(34)), GREEN_INK)
+    p.text_along(cxx, cyy + Y(255), ang, micro, p.font(MONO, SZ(34)), GREEN_INK)
 
-    p.text_at(200, 190, "SERIAL CONTROL STRIP", p.font(SERIF, 44), CREAM, anchor="lm", tracking=10)
-    p.text_at(W - 200, H - 190, "EVERY PATRON NUMBERED \u00b7 NONE FORGOTTEN",
-              p.font(SERIF, 36), GREEN, anchor="rm", tracking=8)
-    for x, y in ((200, H - 190), (W - 200, 190)):
-        p.crosshair(x, y, 40, GREEN_DIM, width=3)
+    p.text_at(X(200), Y(190), "SERIAL CONTROL STRIP", p.font(SERIF, SZ(44)), CREAM, anchor="lm",
+              tracking=X(10))
+    p.text_at(W - X(200), H - Y(190), "EVERY PATRON NUMBERED \u00b7 NONE FORGOTTEN",
+              p.font(SERIF, SZ(36)), GREEN, anchor="rm", tracking=X(8))
+    for x, y in ((X(200), H - Y(190)), (W - X(200), Y(190))):
+        p.crosshair(x, y, SZ(40), GREEN_DIM, width=3)
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -295,33 +354,36 @@ def scene_serial_strip(p):
 @scene
 def scene_inverse_cream(p):
     ink, ink_dim = GREEN_INK, "#57705f"
-    p.border(((56, 7), (72, 2), (102, 4)), ink)
-    p.microprint(86, ink_dim, size=15)
-    p.microprint(H - 96, ink_dim, size=15)
-    p.text_at(W / 2, 168, "THE OLIGARCHY \u00b7 PUBLIC CODE \u00b7 EXPENSIVE PATRONS",
-              p.font(SERIF, 42), ink_dim, tracking=10)
-    p.lattice_band(960, 1090, ink_dim, waves=30, strands=18, width=4)
+    p.border(((SZ(56), 7), (SZ(72), 2), (SZ(102), 4)), ink)
+    p.microprint(Y(86), ink_dim, size=15)
+    p.microprint(H - Y(96), ink_dim, size=15)
+    p.text_at(W / 2, Y(168), "THE OLIGARCHY \u00b7 PUBLIC CODE \u00b7 EXPENSIVE PATRONS",
+              p.font(SERIF, SZ(42)), ink_dim, tracking=X(10))
+    p.lattice_band(Y(960), Y(1090), ink_dim, waves=30, strands=18, width=4)
 
-    for cx, cy in ((300, 300), (W - 300, 300), (300, H - 300), (W - 300, H - 300)):
-        p.d.ellipse([p.s(cx - 205), p.s(cy - 205), p.s(cx + 205), p.s(cy + 205)], fill=ink)
-        p.rosette(cx, cy, 186, 156, CREAM, petals=14, width=4)
-        p.rosette(cx, cy, 130, 110, "#8f9a85", petals=28, width=3)
-        p.text_at(cx, cy, "0", p.font(SERIF, 150), CREAM)
+    for cx, cy in ((X(300), Y(300)), (W - X(300), Y(300)),
+                   (X(300), H - Y(300)), (W - X(300), H - Y(300))):
+        p.d.ellipse([p.s(cx - SZ(205)), p.s(cy - SZ(205)), p.s(cx + SZ(205)), p.s(cy + SZ(205))],
+                    fill=ink)
+        p.rosette(cx, cy, SZ(186), SZ(156), CREAM, petals=14, width=4)
+        p.rosette(cx, cy, SZ(130), SZ(110), "#8f9a85", petals=28, width=3)
+        p.text_at(cx, cy, "0", p.font(SERIF, SZ(150)), CREAM)
 
-    p.o_medallion(W / 2, 1150, ring=ink, green=ink, dim=ink_dim, gold="#a8842e",
+    p.o_medallion(W / 2, Y(1150), scale=YS, ring=ink, green=ink, dim=ink_dim, gold="#a8842e",
                   caption_top="OMACOM FOUNDATION NOTE", caption_bottom="ZERO DOLLARS")
-    p.d.rounded_rectangle([p.s(560), p.s(1660), p.s(W - 560), p.s(1958)], radius=48, fill=ink)
-    p.text_at(W / 2, 1772, "ZERO DOLLARS", p.font(SERIF, 112), CREAM, tracking=28)
-    p.text_at(W / 2, 1888, "SEVERAL BILLIONAIRES", p.font(SERIF_IT, 52), GOLD, tracking=12)
-    p.patron_stars(W / 2, 1990, ink)
-    p.serials("OG 0.001% $0", RED, spots=[(430, 470), (W - 950, 1560)])
+    p.d.rounded_rectangle([p.s(X(560)), p.s(Y(1660)), p.s(W - X(560)), p.s(Y(1958))],
+                          radius=SZ(48), fill=ink)
+    p.text_at(W / 2, Y(1772), "ZERO DOLLARS", p.font(SERIF, SZ(112)), CREAM, tracking=X(28))
+    p.text_at(W / 2, Y(1888), "SEVERAL BILLIONAIRES", p.font(SERIF_IT, SZ(52)), GOLD, tracking=X(12))
+    p.patron_stars(W / 2, Y(1990), ink)
+    p.serials("OG 0.001% $0", RED, spots=[(X(430), Y(470)), (W - X(950), Y(1560))])
 
-    sig, cap = p.font(SERIF_IT, 52), p.font(SERIF, 26)
-    p.text_at(560, 2140, "D. H. Hansson", sig, ink)
-    p.text_at(560, 2210, "BENEVOLENT DICTATOR FOR LIFE", cap, ink_dim, tracking=4)
-    p.text_at(W - 560, 2140, "you@omarchy", sig, ink)
-    p.text_at(W - 560, 2210, "PATRON OF THE ARTS", cap, ink_dim, tracking=4)
-    p.text_at(W / 2, 2210, "SERIES 2026 \u00b7 PROOF", cap, ink_dim, tracking=6)
+    sig, cap = p.font(SERIF_IT, SZ(52)), p.font(SERIF, SZ(26))
+    p.text_at(X(560), Y(2140), "D. H. Hansson", sig, ink)
+    p.text_at(X(560), Y(2210), "BENEVOLENT DICTATOR FOR LIFE", cap, ink_dim, tracking=X(4))
+    p.text_at(W - X(560), Y(2140), "you@omarchy", sig, ink)
+    p.text_at(W - X(560), Y(2210), "PATRON OF THE ARTS", cap, ink_dim, tracking=X(4))
+    p.text_at(W / 2, Y(2210), "SERIES 2026 \u00b7 PROOF", cap, ink_dim, tracking=X(6))
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -330,34 +392,37 @@ def scene_inverse_cream(p):
 @scene
 def scene_gold_seal_minimal(p):
     cx, cy = W / 2, H / 2
-    p.rays(cx, cy, 340, 700, "#a5853e", count=72, width=12)
-    p.d.ellipse([p.s(cx - 660), p.s(cy - 660), p.s(cx + 660), p.s(cy + 660)], fill=GOLD)
-    p.d.ellipse([p.s(cx - 560), p.s(cy - 560), p.s(cx + 560), p.s(cy + 560)], fill=BG_DEEP)
-    p.d.ellipse([p.s(cx - 660), p.s(cy - 660), p.s(cx + 660), p.s(cy + 660)],
+    p.rays(cx, cy, SZ(340), SZ(700), "#a5853e", count=72, width=12)
+    p.d.ellipse([p.s(cx - SZ(660)), p.s(cy - SZ(660)), p.s(cx + SZ(660)), p.s(cy + SZ(660))],
+                fill=GOLD)
+    p.d.ellipse([p.s(cx - SZ(560)), p.s(cy - SZ(560)), p.s(cx + SZ(560)), p.s(cy + SZ(560))],
+                fill=BG_DEEP)
+    p.d.ellipse([p.s(cx - SZ(660)), p.s(cy - SZ(660)), p.s(cx + SZ(660)), p.s(cy + SZ(660))],
                 outline=GOLD, width=int(26 * p.ss))
-    p.d.ellipse([p.s(cx - 620), p.s(cy - 620), p.s(cx + 620), p.s(cy + 620)],
+    p.d.ellipse([p.s(cx - SZ(620)), p.s(cy - SZ(620)), p.s(cx + SZ(620)), p.s(cy + SZ(620))],
                 outline=GOLD, width=int(5 * p.ss))
-    p.arc_text(cx, cy, 748, "OMACOM", p.font(SERIF, 128), GOLD, 205, 335)
-    p.arc_text(cx, cy, 756, "2026", p.font(SERIF, 90), CREAM, 145, 35, flip=True)
-    p.dot_ring(cx, cy, 540, GOLD, count=28, dr=8)
-    p.dot_ring(cx, cy, 400, "#6d5a2e", count=16, dr=6)
-    p.d.ellipse([p.s(cx - 250), p.s(cy - 250), p.s(cx + 250), p.s(cy + 250)], fill=CREAM)
-    p.star(cx, cy, 260, GOLD)
-    p.d.text((p.s(200), p.s(120)), "09", font=p.font(MONO_BOLD, 56), fill=GREEN_DIM)
+    p.arc_text(cx, cy, SZ(748), "OMACOM", p.font(SERIF, SZ(128)), GOLD, 205, 335)
+    p.arc_text(cx, cy, SZ(756), "2026", p.font(SERIF, SZ(90)), CREAM, 145, 35, flip=True)
+    p.dot_ring(cx, cy, SZ(540), GOLD, count=28, dr=8)
+    p.dot_ring(cx, cy, SZ(400), "#6d5a2e", count=16, dr=6)
+    p.d.ellipse([p.s(cx - SZ(250)), p.s(cy - SZ(250)), p.s(cx + SZ(250)), p.s(cy + SZ(250))],
+                fill=CREAM)
+    p.star(cx, cy, SZ(260), GOLD)
+    p.text_at(X(200), Y(120), "09", p.font(MONO_BOLD, SZ(56)), GREEN_DIM, anchor="la")
 
-    m = 140
-    arm = 90
+    m = SZ(140)
+    arm = SZ(90)
     for x0, y0, hx, vy in ((m, m, 1, 1), (W - m, m, -1, 1), (m, H - m, 1, -1), (W - m, H - m, -1, -1)):
         p.d.line([p.s(x0), p.s(y0), p.s(x0 + arm * hx), p.s(y0)], fill=CREAM, width=int(5 * p.ss))
         p.d.line([p.s(x0), p.s(y0), p.s(x0), p.s(y0 + arm * vy)], fill=CREAM, width=int(5 * p.ss))
-    p.text_at(W / 2, H - 170, "IN PATRONS WE TRUST \u00b7 IN PATRONS WE TRUST",
-              p.font(SERIF_REG, 30), "#8a7136", tracking=30)
+    p.text_at(W / 2, H - Y(170), "IN PATRONS WE TRUST \u00b7 IN PATRONS WE TRUST",
+              p.font(SERIF_REG, SZ(30)), "#8a7136", tracking=X(30))
 
 
 # ─────────────────────────────────────────────────────────────────────────
 def build_unlock(size=512):
     """Lock-screen glyph: engraved 1M rosette on transparency."""
-    p = Plate(size, size, BG_DEEP, ss=2)
+    p = Plate(size, size, BG_DEEP, ss=2, safe_check=False)
     p.img = Image.new("RGBA", (size * 2, size * 2), (0, 0, 0, 0))
     p.d = ImageDraw.Draw(p.img)
     cx = size / 2
@@ -383,13 +448,17 @@ def main():
     os.makedirs("backgrounds", exist_ok=True)
     hero_fn = SCENES[0][1]
     for i, (slug, fn) in enumerate(SCENES, 1):
-        p = Plate(W, H, getattr(fn, "bg", BG))
+        bg = getattr(fn, "bg", BG)
+        p = Plate(W, H, bg, origin=(MARGIN_X, MARGIN_Y))
         fn(p)
+        content = p.img.resize((p.w, p.h), Image.LANCZOS)
+        canvas = Image.new("RGB", (FULL_W, FULL_H), bg)
+        canvas.paste(content, (MARGIN_X, MARGIN_Y))
         path = f"backgrounds/{i}-{slug}.jpg"
-        p.save(path, quality=90)
-        print(f"saved {path}")
+        canvas.save(path, "JPEG", quality=90, optimize=True)
+        print(f"saved {path} ({FULL_W}x{FULL_H})")
         if fn is hero_fn:
-            p.img.resize((W, H), Image.LANCZOS).save("backgrounds/legal-tender.png")
+            canvas.save("backgrounds/legal-tender.png")
             print("saved backgrounds/legal-tender.png")
     build_unlock().save("unlock.png")
     print("saved unlock.png")

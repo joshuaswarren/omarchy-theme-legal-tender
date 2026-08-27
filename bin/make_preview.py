@@ -96,7 +96,7 @@ def draw_editor(canvas):
     # Title bar.
     d.line([x0, y0 + 40, x0 + w, y0 + 40], fill=GREEN_DIM, width=2)
     d.text((x0 + 22, y0 + 20), "engrave.py", font=F(MONO_B, 15), fill=CREAM, anchor="lm")
-    d.text((x0 + w - 22, y0 + 20), "python · utf-8 · 3840x2560", font=F(MONO, 13),
+    d.text((x0 + w - 22, y0 + 20), "python · utf-8 · 3840x2160", font=F(MONO, 13),
            fill=GREEN_DIM, anchor="rm")
     # Gutter.
     gx = x0 + 76
@@ -256,7 +256,7 @@ def draw_files(canvas):
         d.text((x0 + w - 22, yy), size, font=name_f, fill=GREEN_DIM, anchor="rm")
 
     d.line([x0 + 18, y0 + h - 32, x0 + w - 18, y0 + h - 32], fill=GREEN_DIM, width=1)
-    d.text((x0 + 22, y0 + h - 16), "9 wallpapers · 3840x2560", font=F(MONO, 12),
+    d.text((x0 + 22, y0 + h - 16), "9 wallpapers · 3840x2160", font=F(MONO, 12),
            fill=GREEN_DIM, anchor="lm")
     d.text((x0 + w - 22, y0 + h - 16), "legal tender", font=F(SERIF_IT, 13), fill=GOLD, anchor="rm")
 
