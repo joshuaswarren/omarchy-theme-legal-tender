@@ -2,13 +2,13 @@
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/joshuaswarren)
 
-A dark theme for [Omarchy](https://omarchy.org). Old bank notes guide the look. Each scene uses green, cream, gold, and red.
+A dark theme for [Omarchy](https://omarchy.org). Old bank notes guide the look, in green, cream, gold, and red.
 
 ![Legal Tender preview](preview.png)
 
 ![Legal Tender backgrounds](backgrounds.jpg)
 
-Nine views show the full note. The rest move in close. They focus on the seal, fine lines, names, serials, stars, and cream proof.
+The theme has nine backgrounds, all engravings of one bank note. The first shows the whole note. The other eight move in close on the seal, line work, signature, serials, stars, corner numbers, a cream proof, and a gold seal.
 
 ## Install
 
@@ -20,16 +20,16 @@ omarchy theme install https://github.com/joshuaswarren/omarchy-theme-legal-tende
 
 | Role | Hex |
 | --- | --- |
-| Backdrop | `#0e1411`. |
-| Dark | `#18211c`. |
-| Text | `#d6d1bd`. |
-| Gold | `#c9a554`. |
-| Green | `#85a760`. |
-| Red | `#b0413e`. |
-| Blue | `#5b7fa6`. |
-| Dim | `#4c5a50`. |
+| Backdrop | `#0e1411` |
+| Dark | `#243029` |
+| Text | `#d6d1bd` |
+| Gold | `#c9a554` |
+| Green | `#85a760` |
+| Red | `#b0413e` |
+| Blue | `#5b7fa6` |
+| Dim | `#4c5a50` |
 
-See [`colors.toml`](colors.toml) for the full ANSI set. Icons use `Yaru-olive`.
+Dark is `color0` in [`colors.toml`](colors.toml), which holds the full ANSI set. Icons use `Yaru-olive`.
 
 ## Support
 
